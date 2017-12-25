@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 	"syscall"
+	"time"
 )
 
 type LogStruct struct {
@@ -18,7 +18,6 @@ var LogChannel = make(chan LogStruct, 10000)
 var pathArray = make([]string, 0)
 
 func init() {
-	fmt.Println("start logging")
 	go HandlerLogs()
 }
 func HandlerLogs() {
@@ -32,6 +31,7 @@ func SaveLog(level, title string, data interface{}) {
 			log.Println(err)
 		}
 	}()
+	//p,err:=os.Getwd()
 	dir := "log/" + time.Now().Format("20060102") + "/" + level + "/"
 	for _, p := range pathArray {
 		if p == dir {
@@ -43,16 +43,14 @@ func SaveLog(level, title string, data interface{}) {
 		//清理过多的缓存
 		pathArray = make([]string, 0)
 	}
-	if _, err := os.Stat(dir); err == nil {
+	if _, err := os.Stat(dir); err != nil {
 		err = os.MkdirAll(dir, 0777)
 		if err != nil {
-			fmt.Println("SaveLog", err)
+			fmt.Println("SaveLog 1", err)
 			return
 		} else {
 			pathArray = append(pathArray, dir)
 		}
-	} else {
-		fmt.Println("SaveLog", err)
 	}
 
 saveFile:
@@ -66,8 +64,8 @@ saveFile:
 	logs := log.New(file, "", log.LstdFlags)
 	if data != nil {
 		logs.Println(data)
-	}else{
-		fmt.Println("empty",level, title , data )
+	} else {
+		fmt.Println("empty", level, title, data)
 	}
 }
 
@@ -95,11 +93,10 @@ func Log(level, title string, data interface{}) {
 	LogChannel <- log
 }
 
-
-
-func Panic(f *os.File){
+func Panic(f *os.File) {
 	redirectStderr(f)
 }
+
 var (
 	kernel32         = syscall.MustLoadDLL("kernel32.dll")
 	procSetStdHandle = kernel32.MustFindProc("SetStdHandle")
