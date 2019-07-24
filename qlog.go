@@ -2,6 +2,8 @@ package qlog
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin/json"
+	"github.com/go-redis/redis"
 	"log"
 	"os"
 	"syscall"
@@ -16,6 +18,14 @@ type LogStruct struct {
 
 var LogChannel = make(chan LogStruct, 10000)
 var pathArray = make([]string, 0)
+var client = redis.NewClient(&redis.Options{
+	Addr:         "192.168.2.207:6379",
+	DialTimeout:  10 * time.Second,
+	ReadTimeout:  30 * time.Second,
+	WriteTimeout: 30 * time.Second,
+	PoolSize:     10,
+	PoolTimeout:  30 * time.Second,
+})
 
 func init() {
 	go HandlerLogs()
@@ -31,7 +41,12 @@ func SaveLog(level, title string, data interface{}) {
 			log.Println(err)
 		}
 	}()
-	//p,err:=os.Getwd()
+	if level == "ELK" {
+		b, _ := json.Marshal(data)
+		client.RPush("elk_log_queue", string(b)).Result()
+		return
+	}
+
 	dir := "log/" + time.Now().Format("20060102") + "/" + level + "/"
 	for _, p := range pathArray {
 		if p == dir {
@@ -83,6 +98,9 @@ func Trace(title string, data interface{}) {
 }
 func Fatal(title string, data interface{}) {
 	Log("Fatal", title, data)
+}
+func ELK(title string, data interface{}) {
+	Log("ELK", title, data)
 }
 
 func Log(level, title string, data interface{}) {
